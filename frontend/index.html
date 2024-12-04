@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #logs {
+            margin-top: 20px;
+        }
+        .log-entry {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Real-Time Resource Monitor</h1>
+
+    <!-- CPU Usage Chart -->
+    <canvas id="cpuChart" width="400" height="200"></canvas>
+    
+    <!-- Memory Usage Chart -->
+    <canvas id="memoryChart" width="400" height="200"></canvas>
+    
+    <div id="logs">
+        <!-- Log entries will be displayed here -->
+    </div>
+    
+    <script>
+        const logsContainer = document.getElementById('logs');
+    
+        // Create the CPU chart
+        const cpuChartContext = document.getElementById('cpuChart').getContext('2d');
+        const cpuChart = new Chart(cpuChartContext, {
+            type: 'line', // Line chart
+            data: {
+                labels: [], // Time labels (e.g., seconds)
+                datasets: [{
+                    label: 'CPU Usage (%)',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    
+        // Create the Memory chart
+        const memoryChartContext = document.getElementById('memoryChart').getContext('2d');
+        const memoryChart = new Chart(memoryChartContext, {
+            type: 'line', // Line chart
+            data: {
+                labels: [], // Time labels (e.g., seconds)
+                datasets: [{
+                    label: 'Memory Usage (%)',
+                    data: [],
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    fill: false,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    
+        // Function to fetch logs from the server
+        function fetchLogs() {
+            fetch('http://localhost:3000/api/logs')
+                .then(response => response.json())
+                .then(data => {
+                    // Log data to verify the format
+                    console.log('Fetched logs:', data);
+    
+                    // Clear current logs and update with new logs
+                    logsContainer.innerHTML = '';
+                    data.logs.forEach(log => {
+                        const logElement = document.createElement('div');
+                        logElement.classList.add('log-entry');
+                        logElement.textContent = log;
+                        logsContainer.appendChild(logElement);
+                    });
+    
+                    // Update charts with new data
+                    const latestLog = data.logs[data.logs.length - 1];
+                    const cpuUsage = parseFloat(latestLog.match(/CPU Usage: (\d+\.\d+)/)[1]);
+                    const memoryUsage = parseFloat(latestLog.match(/Memory Usage: (\d+\.\d+)/)[1]);
+    
+                    // Update CPU chart
+                    const time = cpuChart.data.labels.length + 1; // Use time as the x-axis
+                    cpuChart.data.labels.push(time);
+                    cpuChart.data.datasets[0].data.push(cpuUsage);
+                    cpuChart.update();
+    
+                    // Update Memory chart
+                    memoryChart.data.labels.push(time);
+                    memoryChart.data.datasets[0].data.push(memoryUsage);
+                    memoryChart.update();
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                });
+        }
+    
+        // Fetch logs every 2 seconds
+        setInterval(fetchLogs, 2000);
+    
+        // Initial fetch to load logs
+        fetchLogs();
+    </script>
+    
+
+</body>
+</html>
